@@ -33,17 +33,10 @@ public class BubbleText {
     public static final BasicStroke stroke = new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
 
 
-
-
     /**
      * An array of lines of the input text split to fit to a certain width
      */
     private String[] newString;
-
-    /**
-     * The number of lines the text consumes in the speech bubble
-     */
-    private int lines;
 
     /**
      * A string of the longest line that is in the speech bubble
@@ -75,21 +68,22 @@ public class BubbleText {
 
     /**
      * Creates a new speech bubble with the specified text and maximum line length
-     * @param text The text encompassed by this speech bubble
+     *
+     * @param text       The text encompassed by this speech bubble
      * @param lineLength The maximum number of characters wide the speech bubble will be
      */
     private BubbleText(String text, int lineLength) {
         this.lineLength = lineLength;
-        this.lines = 0;
         this.maxLine = "";
         this.newString = splitLine(text.toUpperCase());
     }
 
     /**
      * Draw this speech bubble into an existing graphics context
-     * @param ga The graphics to draw into
-     * @param posX The X position in parent graphics object to draw to
-     * @param posY The Y position in the parent graphics object to draw to
+     *
+     * @param ga    The graphics to draw into
+     * @param posX  The X position in parent graphics object to draw to
+     * @param posY  The Y position in the parent graphics object to draw to
      * @param point The direction to point the speech bubble towards
      */
     public void draw(Graphics2D ga, double posX, double posY, Pointing point) {
@@ -100,8 +94,8 @@ public class BubbleText {
 
         double bX = posX;
         double bY = (posY - layout.getHeight());
-        double bW = layout.getWidth() + X_PADDING;
-        double bH = (newString.length * layout.getHeight() + 0.5) + Y_PADDING;
+        double bW = layout.getWidth() + 2 * X_PADDING;
+        double bH = (getNumberOfLines() * layout.getHeight() + 0.5) + Y_PADDING;
 
         Polygon p = new Polygon();
         p.addPoint((int) (bX + bW * point.a), (int) (bY + bH - 1));
@@ -127,6 +121,7 @@ public class BubbleText {
 
     /**
      * Get the individual lines of the transformed text
+     *
      * @return An array of lines contained by the speech bubble
      */
     public String[] getNewString() {
@@ -135,15 +130,17 @@ public class BubbleText {
 
     /**
      * Get the number of lines this speech bubble contains
+     *
      * @return The number of lines in this speech bubble
      */
     public int getNumberOfLines() {
-        return lines;
+        return newString.length;
     }
 
     /**
      * Get the bounds of the longest line in the speech bubble
-     * @param frc The rendering context to make the calculation
+     *
+     * @param frc  The rendering context to make the calculation
      * @param font The font to calculate for
      * @return A rectangle that bounds the longest line
      */
@@ -154,6 +151,7 @@ public class BubbleText {
 
     /**
      * Get the bounds for the entire speech bubble
+     *
      * @param ga The graphics context to use to make the calculation
      * @return A rectangle representing the bounds of this speech bubble
      */
@@ -168,7 +166,8 @@ public class BubbleText {
 
     /**
      * Creates a speech bubble from the input text, splits into multiple speech bubbles if necessary
-     * @param text The text to be inside this speech bubble
+     *
+     * @param text      The text to be inside this speech bubble
      * @param monolouge Whether the speech bubble represents a single speech or a small reply in conversation
      * @return A list of speech bubbles generated from the input text
      */
@@ -177,7 +176,7 @@ public class BubbleText {
         BubbleText t = new BubbleText(text, monolouge ? 26 : 13);
 
         while (true) {
-            if (t.lines > MAX_LINES) {
+            if (t.getNumberOfLines() > MAX_LINES) {
                 String[] overflow = t.getNewString();
                 result.add(new BubbleText(createString(overflow, 0, MAX_LINES), t.lineLength));
                 t = new BubbleText(createString(overflow, MAX_LINES, t.getNewString().length), 26);
@@ -192,9 +191,10 @@ public class BubbleText {
 
     /**
      * Join a string array with spaces
+     *
      * @param allLines The array to join
-     * @param start The starting index of the array
-     * @param end The ending index of the array
+     * @param start    The starting index of the array
+     * @param end      The ending index of the array
      * @return The joined string
      */
     private static String createString(String[] allLines, int start, int end) {
@@ -208,6 +208,7 @@ public class BubbleText {
 
     /**
      * Split the input string into multiple lines to conform to the max line length
+     *
      * @param in The input string
      * @return An array of lines split appropriately
      */
@@ -215,7 +216,6 @@ public class BubbleText {
         String line = wrap(in, lineLength, "\n", true);
         String[] allLines = line.split("\n");
 
-        lines = allLines.length;
         for (String s : allLines) {
             if (s.length() > maxLine.length()) {
                 maxLine = s;

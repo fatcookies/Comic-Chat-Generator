@@ -1,5 +1,6 @@
 import java.awt.*;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.util.*;
@@ -78,10 +79,14 @@ public class Conversation {
      */
     private void assignCharacters() {
         AssetLoader ldr = AssetLoader.getInstance();
-        Set<Character> already = new TreeSet<>();
 
         for (Person p : participants.values()) {
-            Character c = ldr.getCharacter("nat");
+            Character c;
+            if (ldr.hasCharacter(p.getNick())) {
+                c = ldr.getCharacter(p.getNick());
+            } else {
+                c = ldr.getRandomCharacter();
+            }
             p.assignCharacter(c);
         }
 
@@ -95,44 +100,96 @@ public class Conversation {
     public List<BufferedImage> toImages() {
         List<BufferedImage> panels = new ArrayList<>();
         AssetLoader ldr = AssetLoader.getInstance();
+        BufferedImage background = ldr.getBackground("basket");
 
-        BufferedImage image = ldr.getBackground("basket");
-        image = backgroundZoom(image);
-
-        for (Message msg : messages) {
-            BufferedImage overlay = msg.p.getCharacter().getImage("neutral");
-            BufferedImage resized = toInitialSize(overlay, false);
-
-            int w = image.getWidth();
-            int h = image.getHeight();
-            BufferedImage combined = new BufferedImage(w, w, BufferedImage.TYPE_INT_ARGB);
-
-            Graphics2D ga = (Graphics2D) combined.getGraphics();
-            ga.drawImage(image, 0, 0, null);
-            //ga.drawImage(resized, 0, 150, null); // left init
-            //ga.drawImage(resized2, w - 150, 150, null); // right init
-            ga.drawImage(resized, -40, h - 200, null); //zoomed
-
-            ga.setFont(new Font("Comic Sans MS", Font.PLAIN, 16));
+        Iterator<Message> it = messages.iterator();
+        List<Message> temp = new ArrayList<>();
+        while (it.hasNext()) {
+            Message m = it.next();
 
 
-            List<BubbleText> list = BubbleText.createText(msg.msg, true);
-            BubbleText line = list.get(0);
-            line.draw(ga, 10, 20, BubbleText.Pointing.LEFT);
+            if (temp.size() == 1) {
+                if (m.p.equals(temp.get(0).p)) {
+                    panels.add(messagesToPanel(background, temp));
+                    temp.clear();
+                }
+            }
 
-            /*
-            List<BubbleText> list2 = BubbleText.createText("ur a cunt stfu", false);
-            BubbleText line2 = list2.get(0);
-            Rectangle2D other = line.getBounds(ga);
-            line2.draw(ga, other.getX() + other.getWidth() - 20, other.getY() + other.getHeight() + 40, BubbleText.Pointing.RIGHT);
-            */
-            ga.dispose();
-            panels.add(combined);
+            if (temp.size() == 2) {
+                temp.get(0).p.setFacing(true);
+                temp.get(1).p.setFacing(false);
+                panels.add(messagesToPanel(background, temp));
+                temp.clear();
 
+            }
+
+            temp.add(m);
         }
+
+        if (!temp.isEmpty()) {
+            panels.add(messagesToPanel(background, temp));
+        }
+
+
         return panels;
     }
 
+    private BufferedImage messagesToPanel(BufferedImage background, List<Message> messages) {
+        int w = background.getWidth();
+        int h = background.getHeight();
+        BufferedImage combined = new BufferedImage(w, w, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D ga = (Graphics2D) combined.getGraphics();
+
+        ga.setFont(AssetLoader.getInstance().getFont("ldfcomicsansb"));
+
+        List<BubbleText> list;
+        BubbleText line;
+        switch (messages.size()) {
+
+            case 1:
+                Message msg = messages.get(0);
+                BufferedImage person = toZoomed(1, msg.p.getCharacter().getImage("neutral"), !msg.p.isFacingRight());
+
+                ga.drawImage(backgroundZoom(1, background), 0, 0, null);
+                ga.drawImage(person, -40, h - 200, null); //zoomed
+
+
+                list = BubbleText.createText(msg.msg, true);
+                line = list.get(0);
+                line.draw(ga, 10, 20, BubbleText.Pointing.LEFT);
+                break;
+            case 2:
+            case 3:
+            case 4:
+                Message msg1 = messages.get(0);
+                Message msg2 = messages.get(1);
+
+                BufferedImage person1 = toZoomed(2, msg1.p.getCharacter().getImage("neutral"), false);
+                BufferedImage person2 = toZoomed(2, msg2.p.getCharacter().getImage("neutral"), true);
+
+                ga.drawImage(backgroundZoom(1, background), 0, 0, null);
+                ga.drawImage(person1, 0, 150, null); // left init
+                ga.drawImage(person2, w - 150, 150, null); // right init
+
+                list = BubbleText.createText(msg1.msg, true);
+                line = list.get(0);
+                line.draw(ga, 10, 20, BubbleText.Pointing.LEFT);
+
+                list = BubbleText.createText(msg2.msg, false);
+                BubbleText line2 = list.get(0);
+                Rectangle2D other = line.getBounds(ga);
+                line2.draw(ga, w - line2.getBounds(ga).getWidth(), other.getY() + other.getHeight() + 40, BubbleText.Pointing.RIGHT);
+
+                break;
+            default:
+                break;
+        }
+
+
+        ga.dispose();
+        return combined;
+
+    }
 
     //todo: fix remaining methods in this class
     public static BufferedImage toInitialSize(BufferedImage overlay, boolean flip) {
@@ -160,22 +217,40 @@ public class Conversation {
         return op.filter(in, null);
     }
 
-    public static BufferedImage backgroundZoom(BufferedImage back) {
+    public static BufferedImage backgroundZoom(int level, BufferedImage back) {
         BufferedImage resized = new BufferedImage(back.getWidth(), back.getHeight(), back.getType());
         Graphics2D g = resized.createGraphics();
-        g.drawImage(back, 0, 0, resized.getWidth(), resized.getHeight(), 0, 80, (int) (resized.getWidth() * 0.60),
-                (int) ((resized.getHeight() + 80) * 0.60), null);
+
+        double zoom = 1.0f;
+        final double[] scales = {0.6f, 1.0f, 1.0f, 1.0f};
+        if (level < scales.length && level > 0) {
+            zoom = scales[level - 1];
+        }
+
+
+        g.drawImage(back, 0, 0, resized.getWidth(), resized.getHeight(), 0, 80, (int) (resized.getWidth() * zoom),
+                (int) ((resized.getHeight() + 80) * zoom), null);
 
         g.dispose();
         return resized;
     }
 
-    public static BufferedImage toZoomed(BufferedImage src, boolean flip) {
-        Rectangle rect = new Rectangle(0, 0, src.getWidth(), 200);
-        if (flip) {
-            src = flip(src);
+    public static BufferedImage toZoomed(int level, BufferedImage src, boolean flip) {
+        BufferedImage dest;
+
+        switch (level) {
+            case 1:
+                Rectangle rect = new Rectangle(0, 0, src.getWidth(), (int) (src.getHeight() * 0.5));
+                if (flip) {
+                    src = flip(src);
+                }
+                dest = src.getSubimage(0, 0, rect.width, rect.height);
+                break;
+            default:
+                dest = toInitialSize(src, flip);
+                break;
         }
-        BufferedImage dest = src.getSubimage(0, 0, rect.width, rect.height);
+
         return dest;
     }
 

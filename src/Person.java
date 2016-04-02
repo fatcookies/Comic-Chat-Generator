@@ -3,6 +3,7 @@
  */
 public class Person {
 
+    private boolean facingRight = true;
     private String nick;
     private Character character;
 
@@ -18,9 +19,18 @@ public class Person {
         this.character = character;
     }
 
+    public void setFacing(boolean facingRight) {
+        this.facingRight = facingRight;
+    }
+
+    public boolean isFacingRight() {
+        return facingRight;
+    }
+
     public Character getCharacter() {
         return character;
     }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

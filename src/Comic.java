@@ -36,8 +36,9 @@ public class Comic {
 
     /**
      * Create a new comic comprised of a set of panels
+     *
      * @param panels A list of images (panels) that will form the comic
-     * @param width The maximum number of panels per row in the comic
+     * @param width  The maximum number of panels per row in the comic
      */
     public Comic(List<BufferedImage> panels, int width) {
         this.panels = panels;
@@ -46,6 +47,7 @@ public class Comic {
 
     /**
      * Creates a comic strip from the inputting panels
+     *
      * @return A BufferedImage of the final comic
      */
     public BufferedImage toImage() {
@@ -85,6 +87,7 @@ public class Comic {
 
     /**
      * Calculate the final size of the comic and create a BufferedImage to act as a canvas
+     *
      * @return The blank comic image (no panels)
      */
     private BufferedImage getBlankCanvas() {
@@ -95,6 +98,7 @@ public class Comic {
         int rowHeight = 0;
         int rows = 0;
         int i;
+
         for (i = 0; i < panels.size(); i++) {
             BufferedImage img = panels.get(i);
             rowWidth += img.getWidth() + X_PADDING;
@@ -115,10 +119,16 @@ public class Comic {
             }
 
         }
-        if(rows < (i % width)) {
+
+        if (rows == 0) {
+            maxWidth += rowWidth;
+        }
+        if ((i % width) != 0) {
             totalHeight += rowHeight + Y_PADDING;
         }
-        maxWidth+= X_PADDING;
+
+
+        maxWidth += X_PADDING;
 
         BufferedImage result = new BufferedImage((int) maxWidth, (int) totalHeight, BufferedImage.TYPE_INT_RGB);
         result.getGraphics().fillRect(0, 0, (int) maxWidth, (int) totalHeight);
