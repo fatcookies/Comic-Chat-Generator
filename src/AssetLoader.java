@@ -76,7 +76,6 @@ public class AssetLoader {
      */
     public Character getRandomCharacter() {
         String rand = (String) characters.keySet().toArray()[(int) (Math.random() * characters.size())];
-        ;
         return getCharacter(rand);
     }
 
